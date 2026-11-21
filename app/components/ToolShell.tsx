@@ -91,7 +91,7 @@ const CATALOG: RelatedTool[] = [
   },
 ];
 
-const USAGE_KEY = "snaptools_tool_usage_v1";
+const USAGE_KEY = "SnapWorkKit_tool_usage_v1";
 
 export default function ToolShell({
   title,

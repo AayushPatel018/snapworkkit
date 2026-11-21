@@ -11,7 +11,7 @@ export default function AboutPage() {
 
       <div className="space-y-6 text-slate-700 text-base sm:text-lg leading-relaxed">
         <p>
-          The <b className="text-slate-900">SnapTools</b> team is here to make everyday document
+          The <b className="text-slate-900">SnapWorkKit</b> team is here to make everyday document
           tasks, calculations, and AI prompt drafting effortless. From firsthand experience, we know
           that dealing with PDFs, resizing photos for forms, or formatting JSON can waste valuable
           time.

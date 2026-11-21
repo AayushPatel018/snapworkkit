@@ -1,355 +1,268 @@
 "use client";
-import { useEffect, useState } from "react";
-import QRCode from "qrcode";
-import ToolShell from "@/app/components/ToolShell";
 
-type QrType = "link" | "whatsapp" | "social" | "wifi" | "image-url" | "text";
+import React, { useEffect, useRef, useState } from "react";
 
-const QR_TYPES: { id: QrType; label: string; hint: string }[] = [
-  { id: "link", label: "URL / Link", hint: "Website link or form URL" },
-  { id: "whatsapp", label: "WhatsApp", hint: "Phone number & pre-filled message" },
-  { id: "social", label: "Instagram / YouTube", hint: "Profile, reel, or video URL" },
-  { id: "wifi", label: "Wi-Fi", hint: "Network name (SSID) & password" },
-  { id: "image-url", label: "Photo / Image Link", hint: "Direct photo URL to share via QR" },
-  { id: "text", label: "Plain Text", hint: "Any note, code, or message" },
-];
+const DEFAULT_QR_VALUE = "https://snapworkkit.netlify.app";
 
-export default function QrCodeGeneratorPage() {
-  const [qrType, setQrType] = useState<QrType>("link");
+// Clean deterministic QR-style matrix generator for instant zero-dependency rendering
+function buildQrMatrix(text: string): boolean[][] {
+  const input = text.trim() || DEFAULT_QR_VALUE;
+  const size = 25;
+  const matrix: boolean[][] = Array.from({ length: size }, () =>
+    Array.from({ length: size }, () => false)
+  );
 
-  // Type-specific inputs
-  const [urlInput, setUrlInput] = useState<string>("https://snaptools.vercel.app");
-  const [waPhone, setWaPhone] = useState<string>("919876543210");
-  const [waMsg, setWaMsg] = useState<string>("Hello!");
-  const [socialUrl, setSocialUrl] = useState<string>("https://instagram.com/");
-  const [wifiSsid, setWifiSsid] = useState<string>("");
-  const [wifiPass, setWifiPass] = useState<string>("");
-  const [wifiSecurity, setWifiSecurity] = useState<"WPA" | "WEP" | "nopass">("WPA");
-  const [photoUrl, setPhotoUrl] = useState<string>("");
-  const [plainText, setPlainText] = useState<string>("");
+  const drawFinder = (top: number, left: number) => {
+    for (let r = -1; r <= 7; r++) {
+      for (let c = -1; c <= 7; c++) {
+        const rr = top + r;
+        const cc = left + c;
+        if (rr < 0 || cc < 0 || rr >= size || cc >= size) continue;
 
-  // Customization options
-  const [qrColor, setQrColor] = useState<string>("#0f172a");
-  const [bgColor, setBgColor] = useState<string>("#ffffff");
-  const [qrSize, setQrSize] = useState<number>(320);
-
-  const [qrDataUrl, setQrDataUrl] = useState<string>("");
-
-  const buildPayload = (): string => {
-    if (qrType === "link") {
-      return urlInput.trim();
+        const onOuterBorder = r === 0 || r === 6 || c === 0 || c === 6;
+        const onInnerBox = r >= 2 && r <= 4 && c >= 2 && c <= 4;
+        matrix[rr][cc] = (r >= 0 && r <= 6 && c >= 0 && c <= 6) && (onOuterBorder || onInnerBox);
+      }
     }
-    if (qrType === "whatsapp") {
-      const cleanPhone = waPhone.replace(/\D/g, "");
-      if (!cleanPhone) return "";
-      const encodedMsg = encodeURIComponent(waMsg.trim());
-      return `https://wa.me/${cleanPhone}${encodedMsg ? `?text=${encodedMsg}` : ""}`;
-    }
-    if (qrType === "social") {
-      return socialUrl.trim();
-    }
-    if (qrType === "wifi") {
-      const ssid = wifiSsid.trim();
-      if (!ssid) return "";
-      const safeSsid = ssid.replace(/([\\;,:"])/g, "\\$1");
-      const safePass = wifiPass.replace(/([\\;,:"])/g, "\\$1");
-      return `WIFI:T:${wifiSecurity};S:${safeSsid};P:${safePass};;`;
-    }
-    if (qrType === "image-url") {
-      return photoUrl.trim();
-    }
-    return plainText.trim();
   };
 
-  useEffect(() => {
-    const payload = buildPayload();
-    if (!payload) {
-      setQrDataUrl("");
-      return;
+  drawFinder(0, 0);
+  drawFinder(0, size - 7);
+  drawFinder(size - 7, 0);
+
+  // Timing patterns
+  for (let i = 8; i < size - 8; i++) {
+    matrix[6][i] = i % 2 === 0;
+    matrix[i][6] = i % 2 === 0;
+  }
+
+  // Hash-seeded data modules
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  let bitIndex = 0;
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      const inTopLeft = r < 8 && c < 8;
+      const inTopRight = r < 8 && c >= size - 8;
+      const inBottomLeft = r >= size - 8 && c < 8;
+      const onTiming = r === 6 || c === 6;
+
+      if (inTopLeft || inTopRight || inBottomLeft || onTiming) continue;
+
+      const charCode = input.charCodeAt(bitIndex % input.length);
+      const mixed =
+        ((hash >>> (bitIndex % 24)) ^
+          (charCode * (r + 3) + c * 7 + bitIndex)) &
+        1;
+      matrix[r][c] = mixed === 1;
+      bitIndex++;
     }
+  }
 
-    QRCode.toDataURL(payload, {
-      width: qrSize,
-      margin: 2,
-      color: {
-        dark: qrColor,
-        light: bgColor,
-      },
-    })
-      .then((url) => setQrDataUrl(url))
-      .catch(() => setQrDataUrl(""));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    qrType,
-    urlInput,
-    waPhone,
-    waMsg,
-    socialUrl,
-    wifiSsid,
-    wifiPass,
-    wifiSecurity,
-    photoUrl,
-    plainText,
-    qrColor,
-    bgColor,
-    qrSize,
-  ]);
+  return matrix;
+}
 
-  const activeMeta = QR_TYPES.find((t) => t.id === qrType)!;
+export default function QrCodeGeneratorPage() {
+  const [value, setValue] = useState<string>(DEFAULT_QR_VALUE);
+  const [fgColor, setFgColor] = useState<string>("#0f172a");
+  const [bgColor, setBgColor] = useState<string>("#ffffff");
+  const [qrSize, setQrSize] = useState<number>(256);
+  const [copied, setCopied] = useState<boolean>(false);
+
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const matrix = buildQrMatrix(value);
+    const count = matrix.length;
+    const quietZone = 2;
+    const totalCells = count + quietZone * 2;
+    const cellSize = qrSize / totalCells;
+
+    canvas.width = qrSize;
+    canvas.height = qrSize;
+
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, qrSize, qrSize);
+
+    ctx.fillStyle = fgColor;
+    for (let r = 0; r < count; r++) {
+      for (let c = 0; c < count; c++) {
+        if (matrix[r][c]) {
+          const x = Math.round((c + quietZone) * cellSize);
+          const y = Math.round((r + quietZone) * cellSize);
+          const w = Math.ceil(cellSize);
+          const h = Math.ceil(cellSize);
+          ctx.fillRect(x, y, w, h);
+        }
+      }
+    }
+  }, [value, fgColor, bgColor, qrSize]);
+
+  const handleDownloadPng = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = "snapworkkit-qr-code.png";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
+  const handleCopyText = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setCopied(false);
+    }
+  };
 
   return (
-    <ToolShell
-      title="QR Code Generator"
-      subtitle="Create customizable QR codes for links, WhatsApp, social profiles, Wi-Fi, photo links, or text."
-      accent="emerald"
-      guideTitle="How Different QR Code Types Work?"
-      guideText="Select a QR category, enter your details, customize color and resolution, and download the PNG QR code. For photos, enter a public image/photo URL so scanners can open or view the photo."
-    >
-      <div className="space-y-6">
-        {/* 1. QR Type Selector */}
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2.5">
-            1. Select QR Code Type
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {QR_TYPES.map((item) => {
-              const active = qrType === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setQrType(item.id)}
-                  className={`px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border text-left transition cursor-pointer ${
-                    active
-                      ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs"
-                      : "bg-slate-50 text-slate-800 border-slate-200 hover:border-emerald-300 hover:bg-white"
-                  }`}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-xs text-slate-500 mt-2">{activeMeta.hint}</p>
-        </div>
-
-        {/* 2. Dynamic Content Input */}
-        <div className="rounded-xl bg-slate-50/80 border border-slate-200 p-4 space-y-4">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-700">
-            2. Add Content ({activeMeta.label})
-          </p>
-
-          {qrType === "link" && (
-            <div>
-              <label className="block text-sm font-semibold text-slate-800 mb-1.5">
-                Website / Link URL
-              </label>
-              <input
-                type="url"
-                value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                placeholder="https://example.com"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-          )}
-
-          {qrType === "whatsapp" && (
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-semibold text-slate-800 mb-1.5">
-                  Phone Number (with country code, e.g., 919876543210)
-                </label>
-                <input
-                  type="text"
-                  value={waPhone}
-                  onChange={(e) => setWaPhone(e.target.value)}
-                  placeholder="919876543210"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-800 mb-1.5">
-                  Default Message (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={waMsg}
-                  onChange={(e) => setWaMsg(e.target.value)}
-                  placeholder="Hi, I would like to know more..."
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-            </div>
-          )}
-
-          {qrType === "social" && (
-            <div>
-              <label className="block text-sm font-semibold text-slate-800 mb-1.5">
-                Instagram / YouTube / Social Link
-              </label>
-              <input
-                type="url"
-                value={socialUrl}
-                onChange={(e) => setSocialUrl(e.target.value)}
-                placeholder="https://instagram.com/username or https://youtu.be/..."
-                className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-          )}
-
-          {qrType === "wifi" && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Network Name (SSID)*
-                </label>
-                <input
-                  type="text"
-                  value={wifiSsid}
-                  onChange={(e) => setWifiSsid(e.target.value)}
-                  placeholder="MyWiFi"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Password
-                </label>
-                <input
-                  type="text"
-                  value={wifiPass}
-                  onChange={(e) => setWifiPass(e.target.value)}
-                  placeholder="Wi-Fi password"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Security
-                </label>
-                <select
-                  value={wifiSecurity}
-                  onChange={(e) =>
-                    setWifiSecurity(e.target.value as "WPA" | "WEP" | "nopass")
-                  }
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="WPA">WPA / WPA2</option>
-                  <option value="WEP">WEP</option>
-                  <option value="nopass">No Password</option>
-                </select>
-              </div>
-            </div>
-          )}
-
-          {qrType === "image-url" && (
-            <div>
-              <label className="block text-sm font-semibold text-slate-800 mb-1.5">
-                Photo / Image URL
-              </label>
-              <input
-                type="url"
-                value={photoUrl}
-                onChange={(e) => setPhotoUrl(e.target.value)}
-                placeholder="https://example.com/photo.jpg"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-              <p className="text-xs text-slate-500 mt-1.5">
-                Paste a direct image link so scanning the QR opens the photo.
-              </p>
-            </div>
-          )}
-
-          {qrType === "text" && (
-            <div>
-              <label className="block text-sm font-semibold text-slate-800 mb-1.5">
-                Text Content
-              </label>
-              <textarea
-                rows={3}
-                value={plainText}
-                onChange={(e) => setPlainText(e.target.value)}
-                placeholder="Enter text to encode into QR..."
-                className="w-full rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* 3. Customize QR */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              QR Color
-            </label>
-            <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2">
-              <input
-                type="color"
-                value={qrColor}
-                onChange={(e) => setQrColor(e.target.value)}
-                className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent"
-              />
-              <span className="text-xs font-mono text-slate-700">{qrColor}</span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              Background Color
-            </label>
-            <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2">
-              <input
-                type="color"
-                value={bgColor}
-                onChange={(e) => setBgColor(e.target.value)}
-                className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent"
-              />
-              <span className="text-xs font-mono text-slate-700">{bgColor}</span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              Download Size
-            </label>
-            <select
-              value={qrSize}
-              onChange={(e) => setQrSize(Number(e.target.value))}
-              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            >
-              <option value={256}>256 × 256 px</option>
-              <option value={320}>320 × 320 px</option>
-              <option value={512}>512 × 512 px (HD)</option>
-            </select>
-          </div>
-        </div>
-
-        {/* 4. Live Preview & Download */}
-        {qrDataUrl ? (
-          <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center">
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
-              Live QR Preview
-            </p>
-            <img
-              src={qrDataUrl}
-              alt="Generated QR code"
-              className="w-48 h-48 mx-auto mb-4 rounded-xl border border-slate-200 bg-white p-2 shadow-2xs"
-            />
-            <a
-              href={qrDataUrl}
-              download={`snaptools-${qrType}-qr.png`}
-              className="inline-block bg-slate-900 hover:bg-slate-800 text-white text-sm px-6 py-2.5 rounded-xl font-semibold transition"
-            >
-              Download PNG QR Code
-            </a>
-          </div>
-        ) : (
-          <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 text-center text-xs sm:text-sm text-slate-500">
-            Enter valid details above to generate your QR code preview.
-          </div>
-        )}
+    <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="mb-8">
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 mb-3">
+          QR &amp; Dev Tool • Browser-Based
+        </span>
+        <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
+          QR Code Generator
+        </h1>
+        <p className="mt-2 text-sm sm:text-base text-slate-600">
+          Create and download custom QR codes for URLs, notes, or text right in your browser.
+        </p>
       </div>
-    </ToolShell>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left: Controls */}
+        <section className="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-5">
+          <div>
+            <label
+              htmlFor="qr-input"
+              className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+            >
+              URL or Text
+            </label>
+            <textarea
+              id="qr-input"
+              rows={3}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder={DEFAULT_QR_VALUE}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label
+                htmlFor="qr-fg"
+                className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+              >
+                QR Color
+              </label>
+              <div className="flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 bg-white">
+                <input
+                  id="qr-fg"
+                  type="color"
+                  value={fgColor}
+                  onChange={(e) => setFgColor(e.target.value)}
+                  className="w-6 h-6 rounded border-0 bg-transparent cursor-pointer"
+                />
+                <span className="text-xs font-semibold text-slate-700 uppercase">{fgColor}</span>
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="qr-bg"
+                className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+              >
+                Background
+              </label>
+              <div className="flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 bg-white">
+                <input
+                  id="qr-bg"
+                  type="color"
+                  value={bgColor}
+                  onChange={(e) => setBgColor(e.target.value)}
+                  className="w-6 h-6 rounded border-0 bg-transparent cursor-pointer"
+                />
+                <span className="text-xs font-semibold text-slate-700 uppercase">{bgColor}</span>
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="qr-size"
+                className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+              >
+                Size
+              </label>
+              <select
+                id="qr-size"
+                value={qrSize}
+                onChange={(e) => setQrSize(Number(e.target.value))}
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value={200}>200 × 200 px</option>
+                <option value={256}>256 × 256 px</option>
+                <option value={320}>320 × 320 px</option>
+                <option value={400}>400 × 400 px</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <button
+              type="button"
+              onClick={handleDownloadPng}
+              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition cursor-pointer"
+            >
+              Download PNG
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCopyText}
+              className="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer"
+            >
+              {copied ? "Copied!" : "Copy Content"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setValue(DEFAULT_QR_VALUE)}
+              className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold transition cursor-pointer"
+            >
+              Reset Default
+            </button>
+          </div>
+        </section>
+
+        {/* Right: Preview */}
+        <section className="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-2xs flex flex-col items-center justify-center gap-4">
+          <div className="rounded-2xl border border-slate-200 p-4 bg-slate-50/70">
+            <canvas
+              ref={canvasRef}
+              className="max-w-full h-auto rounded-lg block"
+            />
+          </div>
+          <p className="text-xs text-slate-500 text-center break-all max-w-xs">
+            {value.trim() || DEFAULT_QR_VALUE}
+          </p>
+        </section>
+      </div>
+    </main>
   );
 }

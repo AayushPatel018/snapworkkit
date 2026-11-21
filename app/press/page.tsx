@@ -5,7 +5,7 @@ export default function PressPage() {
     <main className="max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
       <div className="text-center mb-12">
         <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900">
-          Some facts about SnapTools
+          Some facts about SnapWorkKit
         </h1>
       </div>
 
@@ -16,7 +16,7 @@ export default function PressPage() {
           </span>
           <h2 className="text-lg font-bold text-slate-900 mb-2">Who are we?</h2>
           <p className="text-sm text-slate-600 leading-relaxed">
-            SnapTools is a lightweight web utility hub created to simplify everyday PDF, image,
+            SnapWorkKit is a lightweight web utility hub created to simplify everyday PDF, image,
             calculation, and AI prompt tasks without unnecessary sign-up walls.
           </p>
         </div>

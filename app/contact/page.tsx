@@ -32,7 +32,7 @@ export default function ContactPage() {
           access_key: accessKey,
           name,
           email,
-          subject: `[SnapTools] ${subject}`,
+          subject: `[SnapWorkKit] ${subject}`,
           message,
         }),
       });
@@ -56,7 +56,7 @@ export default function ContactPage() {
             Contact
           </h1>
           <p className="text-slate-600 text-base sm:text-lg leading-relaxed">
-            Contact us to report a bug, suggest a new tool, ask a question about SnapTools, or
+            Contact us to report a bug, suggest a new tool, ask a question about SnapWorkKit, or
             share feedback.
           </p>
         </div>

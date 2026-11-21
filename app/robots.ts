@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const BASE_URL = "https://snaptools.vercel.app";
+const BASE_URL = "https://SnapWorkKit.vercel.app";
 
 export default function robots(): MetadataRoute.Robots {
   return {
