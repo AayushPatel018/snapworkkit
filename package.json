@@ -9,14 +9,18 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "browser-image-compression": "^2.0.2",
     "next": "16.x",
     "pdf-lib": "^1.17.1",
     "react": "19.x",
     "react-dom": "19.x"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
+    "@tailwindcss/postcss": "^4.3.5",
+    "@tailwindcss/turbopack": "^4.3.5",
+    "@types/node": "26.6.6",
+    "@types/react": "19.3.0",
+    "tailwindcss": "^4.3.5",
     "typescript": "^5"
   }
 }
