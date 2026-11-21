@@ -36,7 +36,7 @@ export default function ImageCompressorPage() {
 
   return (
     <ToolShell
-      title="Exam Form Image Compressor"
+      title="Image Compressor"
       subtitle="Compress photos, signatures, and scans to 20KB, 50KB, or 100KB for online applications."
       accent="purple"
       guideTitle="How to Compress Images for Application Forms?"

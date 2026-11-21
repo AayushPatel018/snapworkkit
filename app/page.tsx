@@ -1,334 +1,360 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+
+type CategoryKey = "PDF Tools" | "Image Tools" | "Student Tools" | "AI & Dev Tools";
 
 interface ToolItem {
   title: string;
-  desc: string;
+  description: string;
   href: string;
-  category: "PDF Tools" | "Image Tools" | "Student Tools" | "AI & Dev Tools";
-  badgeStyle: string;
-  accentHover: string;
+  category: CategoryKey;
+  popular?: boolean;
 }
 
-const ALL_TOOLS: ToolItem[] = [
+const TOOLS: ToolItem[] = [
   {
     title: "Merge PDF",
-    desc: "Combine two or more PDF documents into a single clean PDF file.",
+    description: "Combine two or more PDF documents into a single clean PDF file.",
     href: "/tools/merge-pdf",
     category: "PDF Tools",
-    badgeStyle: "bg-rose-50 text-rose-700 border-rose-200",
-    accentHover: "hover:border-rose-300",
-  },
-  {
-    title: "Images to PDF",
-    desc: "Convert JPG and PNG photos into a single organized PDF document.",
-    href: "/tools/image-to-pdf",
-    category: "PDF Tools",
-    badgeStyle: "bg-rose-50 text-rose-700 border-rose-200",
-    accentHover: "hover:border-rose-300",
-  },
-  {
-    title: "Rotate PDF Pages",
-    desc: "Rotate sideways or upside-down PDF pages by 90°, 180°, or 270°.",
-    href: "/tools/rotate-pdf",
-    category: "PDF Tools",
-    badgeStyle: "bg-rose-50 text-rose-700 border-rose-200",
-    accentHover: "hover:border-rose-300",
+    popular: true,
   },
   {
     title: "Extract / Split PDF Pages",
-    desc: "Extract selected pages or ranges (e.g., 1, 3-5) into a new PDF file.",
+    description: "Select specific pages or page ranges and save them as a new PDF.",
     href: "/tools/extract-pdf-pages",
     category: "PDF Tools",
-    badgeStyle: "bg-rose-50 text-rose-700 border-rose-200",
-    accentHover: "hover:border-rose-300",
+    popular: true,
   },
   {
-    title: "Remove PDF Pages",
-    desc: "Delete unwanted or blank pages from any PDF and download a clean copy.",
-    href: "/tools/remove-pdf-pages",
+    title: "Images to PDF",
+    description: "Convert JPG and PNG photos into a single organized PDF document.",
+    href: "/tools/image-to-pdf",
     category: "PDF Tools",
-    badgeStyle: "bg-rose-50 text-rose-700 border-rose-200",
-    accentHover: "hover:border-rose-300",
+  },
+  {
+    title: "Rotate PDF Pages",
+    description: "Rotate sideways or upside-down PDF pages by 90°, 180°, or 270°.",
+    href: "/tools/rotate-pdf",
+    category: "PDF Tools",
   },
   {
     title: "Add Page Numbers to PDF",
-    desc: "Automatically add clean page numbers to the footer of every PDF page.",
+    description: "Add clean, formatted page numbers to PDF pages in your browser.",
     href: "/tools/add-page-numbers",
     category: "PDF Tools",
-    badgeStyle: "bg-rose-50 text-rose-700 border-rose-200",
-    accentHover: "hover:border-rose-300",
   },
   {
-    title: "Reverse PDF Page Order",
-    desc: "Reverse the page order of scanned PDFs from last-to-first to proper order.",
+    title: "Remove PDF Pages",
+    description: "Delete unwanted pages from any PDF file quickly.",
+    href: "/tools/remove-pdf-pages",
+    category: "PDF Tools",
+  },
+  {
+    title: "Reverse PDF Pages",
+    description: "Flip PDF page order from last page to first page.",
     href: "/tools/reverse-pdf",
     category: "PDF Tools",
-    badgeStyle: "bg-rose-50 text-rose-700 border-rose-200",
-    accentHover: "hover:border-rose-300",
   },
   {
-    title: "Text & Notes to PDF",
-    desc: "Turn typed notes, drafts, or plain text into a ready-to-share A4 PDF.",
+    title: "Text to PDF",
+    description: "Turn plain notes or text into a clean downloadable PDF.",
     href: "/tools/text-to-pdf",
     category: "PDF Tools",
-    badgeStyle: "bg-rose-50 text-rose-700 border-rose-200",
-    accentHover: "hover:border-rose-300",
   },
   {
-    title: "Exam Form Image Compressor",
-    desc: "Compress photos and signatures to 20KB, 50KB, or 100KB for online forms.",
+    title: "Image Compressor",
+    description: "Reduce image file size while keeping clear visual quality.",
     href: "/tools/image-compressor",
     category: "Image Tools",
-    badgeStyle: "bg-purple-50 text-purple-700 border-purple-200",
-    accentHover: "hover:border-purple-300",
+    popular: true,
   },
   {
     title: "75% Attendance Calculator",
-    desc: "Calculate how many classes you need to attend or can safely skip.",
+    description: "Track attendance percentage and see how many classes to attend or skip.",
     href: "/tools/attendance-calculator",
     category: "Student Tools",
-    badgeStyle: "bg-blue-50 text-blue-700 border-blue-200",
-    accentHover: "hover:border-blue-300",
+    popular: true,
   },
   {
-    title: "CGPA to Percentage Calculator",
-    desc: "Convert your CGPA into percentage using standard conversion formulas.",
+    title: "CGPA Calculator",
+    description: "Calculate semester GPA and overall CGPA from grades and credits.",
     href: "/tools/cgpa-calculator",
     category: "Student Tools",
-    badgeStyle: "bg-blue-50 text-blue-700 border-blue-200",
-    accentHover: "hover:border-blue-300",
   },
   {
-    title: "Word & Character Counter",
-    desc: "Count words, characters, sentences, and reading time in real time.",
+    title: "Word Counter",
+    description: "Count words, characters, sentences, and estimated reading time.",
     href: "/tools/word-counter",
     category: "Student Tools",
-    badgeStyle: "bg-blue-50 text-blue-700 border-blue-200",
-    accentHover: "hover:border-blue-300",
   },
   {
     title: "Age Calculator",
-    desc: "Calculate exact age in years, months, and days from birth date.",
+    description: "Find exact age in years, months, and days from date of birth.",
     href: "/tools/age-calculator",
     category: "Student Tools",
-    badgeStyle: "bg-blue-50 text-blue-700 border-blue-200",
-    accentHover: "hover:border-blue-300",
   },
   {
     title: "AI Prompt Generator",
-    desc: "Generate structured prompts for AI image art, coding, and exam study.",
+    description: "Build structured prompts for coding, study notes, and content tasks.",
     href: "/prompts",
     category: "AI & Dev Tools",
-    badgeStyle: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    accentHover: "hover:border-emerald-300",
-  },
-  {
-    title: "JSON Formatter & Validator",
-    desc: "Beautify, minify, and validate JSON payloads with instant syntax feedback.",
-    href: "/tools/json-formatter",
-    category: "AI & Dev Tools",
-    badgeStyle: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    accentHover: "hover:border-emerald-300",
-  },
-  {
-    title: "Strong Password Generator",
-    desc: "Generate cryptographically random passwords right inside your browser.",
-    href: "/tools/password-generator",
-    category: "AI & Dev Tools",
-    badgeStyle: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    accentHover: "hover:border-emerald-300",
   },
   {
     title: "QR Code Generator",
-    desc: "Create QR codes for links, WhatsApp, social profiles, Wi-Fi, and text.",
+    description: "Generate instant QR codes for links, text, and sharing.",
     href: "/tools/qr-code-generator",
     category: "AI & Dev Tools",
-    badgeStyle: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    accentHover: "hover:border-emerald-300",
+  },
+  {
+    title: "JSON Formatter",
+    description: "Beautify, validate, and format JSON data cleanly.",
+    href: "/tools/json-formatter",
+    category: "AI & Dev Tools",
+  },
+  {
+    title: "Password Generator",
+    description: "Create strong, random passwords directly in your browser.",
+    href: "/tools/password-generator",
+    category: "AI & Dev Tools",
   },
 ];
 
-const CATEGORIES = [
-  "All",
-  "PDF Tools",
-  "Image Tools",
-  "Student Tools",
-  "AI & Dev Tools",
-] as const;
-
-const USAGE_KEY = "snaptools_tool_usage_v1";
+const CATEGORIES: { key: CategoryKey; label: string; subtitle: string }[] = [
+  { key: "PDF Tools", label: "PDF Tools", subtitle: "Merge, split, rotate & number" },
+  { key: "Image Tools", label: "Image Tools", subtitle: "Compress & optimize images" },
+  { key: "Student Tools", label: "Student Tools", subtitle: "Attendance, CGPA, words & age" },
+  { key: "AI & Dev Tools", label: "AI & Dev Tools", subtitle: "Prompts, QR, JSON & passwords" },
+];
 
 export default function HomePage() {
-  const router = useRouter();
-  const [activeCategory, setActiveCategory] = useState<string>("All");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [mostUsedTools, setMostUsedTools] = useState<ToolItem[]>([]);
+  const [query, setQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<"All" | CategoryKey>("All");
+  const [showAllOnMobile, setShowAllOnMobile] = useState(false);
 
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(USAGE_KEY);
-      if (!raw) return;
-      const usageMap = JSON.parse(raw) as Record<string, number>;
-      const ranked = ALL_TOOLS.filter((t) => (usageMap[t.href] || 0) > 0)
-        .sort((a, b) => (usageMap[b.href] || 0) - (usageMap[a.href] || 0))
-        .slice(0, 3);
-      setMostUsedTools(ranked);
-    } catch {
-      // Ignore storage errors
-    }
-  }, []);
+  const isFiltering = query.trim().length > 0 || selectedCategory !== "All";
 
-  const visibleTools = ALL_TOOLS.filter((tool) => {
-    const matchesCategory = activeCategory === "All" || tool.category === activeCategory;
-    const q = searchQuery.trim().toLowerCase();
-    const matchesSearch =
-      !q ||
-      tool.title.toLowerCase().includes(q) ||
-      tool.desc.toLowerCase().includes(q) ||
-      tool.category.toLowerCase().includes(q);
-    return matchesCategory && matchesSearch;
-  });
+  const filteredTools = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return TOOLS.filter((tool) => {
+      const matchesCat = selectedCategory === "All" || tool.category === selectedCategory;
+      const matchesQuery =
+        !q ||
+        tool.title.toLowerCase().includes(q) ||
+        tool.description.toLowerCase().includes(q) ||
+        tool.category.toLowerCase().includes(q);
+      return matchesCat && matchesQuery;
+    });
+  }, [query, selectedCategory]);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (visibleTools.length > 0) {
-      router.push(visibleTools[0].href);
-    }
-  };
+  const popularTools = useMemo(() => TOOLS.filter((t) => t.popular), []);
 
   return (
-    <main className="relative bg-gradient-to-b from-blue-50/70 via-slate-50 to-slate-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-7 sm:pt-12 pb-12 sm:pb-16">
-        <section className="text-center max-w-3xl mx-auto mb-6 sm:mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white text-slate-700 text-[11px] sm:text-xs font-semibold border border-slate-200/90 shadow-2xs mb-4">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Free • No Sign-Up • Browser-Based</span>
-          </div>
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6 sm:space-y-8">
+      {/* Compact Hero + Search */}
+      <section className="space-y-4">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-xs font-semibold">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          Free • No Sign-Up • Browser-Based
+        </div>
 
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight mb-3">
-            Every PDF, Image, Student &amp;{" "}
-            <span className="text-blue-600">AI Tool</span> in One Place
-          </h1>
+        <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-slate-900 leading-tight">
+          Every PDF, Image, Student &amp; AI Tool in One Place
+        </h1>
 
-          <p className="text-slate-600 text-sm sm:text-base lg:text-lg leading-relaxed max-w-2xl mx-auto">
-            Fast, privacy-friendly tools for everyday tasks—merge or split PDFs, compress exam
-            photos, calculate CGPA &amp; attendance, and generate structured AI prompts.
-          </p>
-        </section>
+        <p className="text-sm sm:text-base text-slate-600 max-w-2xl">
+          Pick a category or search a tool—no long scrolling needed. Everything runs fast in your
+          browser.
+        </p>
 
-        <form onSubmit={handleSearchSubmit} className="max-w-xl mx-auto mb-5 sm:mb-6">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search tools & press Enter (e.g., merge pdf, cgpa, 75%, qr)..."
-              className="w-full px-4 py-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/90 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 hover:text-slate-800 px-2 py-1 cursor-pointer"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-        </form>
+        {/* Search Input */}
+        <div>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search tools (e.g., merge pdf, compress, cgpa, 75%, qr)..."
+            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
 
-        {/* Most Used Tools Row (Shown when user has used tools) */}
-        {mostUsedTools.length > 0 && !searchQuery && activeCategory === "All" && (
-          <section className="max-w-4xl mx-auto mb-7 rounded-2xl bg-white/90 border border-slate-200/90 p-4 shadow-2xs">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2.5">
-              Your Most Used Tools
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {mostUsedTools.map((tool) => (
-                <Link
-                  key={tool.href}
-                  href={tool.href}
-                  className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200/80 hover:border-blue-300 text-xs sm:text-sm font-semibold text-slate-800 hover:text-blue-700 transition"
-                >
-                  <span className="truncate">{tool.title}</span>
-                  <span>→</span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
+        {/* Category Filter Pills */}
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedCategory("All");
+              setShowAllOnMobile(false);
+            }}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold border transition cursor-pointer ${
+              selectedCategory === "All"
+                ? "bg-blue-600 text-white border-blue-600"
+                : "bg-white text-slate-700 border-slate-200 hover:border-blue-300"
+            }`}
+          >
+            All
+          </button>
 
-        <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 mb-7 sm:mb-10">
           {CATEGORIES.map((cat) => {
-            const isActive = activeCategory === cat;
+            const active = selectedCategory === cat.key;
             return (
               <button
-                key={cat}
+                key={cat.key}
                 type="button"
-                onClick={() => setActiveCategory(cat)}
-                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold border transition cursor-pointer ${
-                  isActive
-                    ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                    : "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                onClick={() => setSelectedCategory(cat.key)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold border transition cursor-pointer ${
+                  active
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-slate-700 border-slate-200 hover:border-blue-300"
                 }`}
               >
-                {cat}
+                {cat.label}
               </button>
             );
           })}
         </div>
+      </section>
 
-        {visibleTools.length > 0 ? (
-          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {visibleTools.map((tool) => (
-              <Link
-                key={tool.href}
-                href={tool.href}
-                className={`group flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-6 shadow-2xs hover:shadow-md ${tool.accentHover} hover:-translate-y-0.5 transition-all duration-150`}
-              >
-                <div>
-                  <span
-                    className={`inline-block text-[11px] sm:text-xs font-semibold px-2.5 py-0.5 sm:py-1 rounded-full border mb-3 ${tool.badgeStyle}`}
-                  >
-                    {tool.category}
-                  </span>
-                  <h2 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors mb-1.5">
-                    {tool.title}
-                  </h2>
-                  <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-                    {tool.desc}
-                  </p>
-                </div>
-
-                <div className="mt-4 sm:mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-700 group-hover:text-blue-600 transition-colors">
-                  <span>Use Tool</span>
-                  <span className="group-hover:translate-x-1 transition-transform">→</span>
-                </div>
-              </Link>
-            ))}
-          </section>
-        ) : (
-          <div className="text-center py-12 px-4 bg-white rounded-2xl border border-slate-200 max-w-lg mx-auto">
-            <p className="text-slate-800 font-semibold mb-1">No matching tool found</p>
-            <p className="text-slate-500 text-sm mb-4">
-              Try searching with another keyword like &ldquo;pdf&rdquo;, &ldquo;cgpa&rdquo;, or &ldquo;prompt&rdquo;.
-            </p>
+      {/* When Searching or Filtering by Category */}
+      {isFiltering ? (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
+              {selectedCategory === "All" ? "Search Results" : selectedCategory} (
+              {filteredTools.length})
+            </h2>
             <button
               type="button"
               onClick={() => {
-                setSearchQuery("");
-                setActiveCategory("All");
+                setQuery("");
+                setSelectedCategory("All");
               }}
-              className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition cursor-pointer"
+              className="text-xs font-bold text-blue-600 hover:underline cursor-pointer"
             >
-              Reset Filters
+              Reset
             </button>
           </div>
-        )}
-      </div>
+
+          {filteredTools.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-600">
+              No matching tools found. Try another keyword like &ldquo;pdf&rdquo;,
+              &ldquo;compress&rdquo;, or &ldquo;cgpa&rdquo;.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredTools.map((tool) => (
+                <Link
+                  key={tool.href}
+                  href={tool.href}
+                  className="rounded-2xl border border-slate-200 bg-white p-5 hover:border-blue-400 hover:shadow-sm transition flex flex-col justify-between gap-3"
+                >
+                  <div>
+                    <span className="inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 mb-2">
+                      {tool.category}
+                    </span>
+                    <h3 className="text-base font-extrabold text-slate-900">{tool.title}</h3>
+                    <p className="text-xs sm:text-sm text-slate-600 mt-1">{tool.description}</p>
+                  </div>
+                  <span className="text-xs font-bold text-slate-700 flex items-center justify-between pt-1">
+                    <span>Use Tool</span>
+                    <span>→</span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      ) : (
+        <>
+          {/* Quick Most Used Tools (Compact for Mobile) */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 space-y-3">
+            <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
+              Quick Popular Tools
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {popularTools.map((tool) => (
+                <Link
+                  key={tool.href}
+                  href={tool.href}
+                  className="flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-slate-200/80 bg-slate-50/60 hover:bg-blue-50/60 hover:border-blue-300 transition text-sm font-bold text-slate-800"
+                >
+                  <span>{tool.title}</span>
+                  <span className="text-slate-400">→</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          {/* Category Cards (Fast Tap on Phone — No Endless Scroll) */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
+                Browse by Category
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowAllOnMobile((prev) => !prev)}
+                className="sm:hidden text-xs font-bold text-blue-600 cursor-pointer"
+              >
+                {showAllOnMobile ? "Compact View" : `Show All (${TOOLS.length})`}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {CATEGORIES.map((cat) => {
+                const count = TOOLS.filter((t) => t.category === cat.key).length;
+                return (
+                  <button
+                    key={cat.key}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat.key)}
+                    className="text-left rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 hover:border-blue-400 hover:shadow-sm transition flex items-center justify-between gap-3 cursor-pointer"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-base font-extrabold text-slate-900">{cat.label}</span>
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                          {count}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 mt-1">{cat.subtitle}</p>
+                    </div>
+                    <span className="text-sm font-bold text-blue-600 shrink-0">Open →</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Full Tools Grid: Always visible on sm+ screens, or when user taps "Show All" on phone */}
+          <section className={`${showAllOnMobile ? "block" : "hidden sm:block"} space-y-3.5`}>
+            <h2 className="text-base sm:text-lg font-extrabold text-slate-900">All Tools</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {TOOLS.map((tool) => (
+                <Link
+                  key={tool.href}
+                  href={tool.href}
+                  className="rounded-2xl border border-slate-200 bg-white p-5 hover:border-blue-400 hover:shadow-sm transition flex flex-col justify-between gap-3"
+                >
+                  <div>
+                    <span className="inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 mb-2">
+                      {tool.category}
+                    </span>
+                    <h3 className="text-base font-extrabold text-slate-900">{tool.title}</h3>
+                    <p className="text-xs sm:text-sm text-slate-600 mt-1">{tool.description}</p>
+                  </div>
+                  <span className="text-xs font-bold text-slate-700 flex items-center justify-between pt-1">
+                    <span>Use Tool</span>
+                    <span>→</span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
     </main>
   );
 }
